@@ -14,10 +14,11 @@ fi
 source $SPACK_SETUP
 
 [ "$BACKEND" = "CUDA" ] && ENV=heffte-cuda || ENV=heffte
+[ "$BACKEND" = "ROCM" ] && ENV=heffte-rocm
 spack env activate --without-view $ENV
 
 spack load cmake
-spack load openmpi
+spack load mpi
 
 ARGS="-DCMAKE_INSTALL_PREFIX=install"
 if [ "$BACKEND" = "MKL" ]; then
@@ -40,7 +41,8 @@ elif [ "$BACKEND" = "CUDA" ]; then
    which nvcc
 elif [ "$BACKEND" = "ROCM" ]; then
    ARGS+=" -DHeffte_ENABLE_ROCM=ON"
-   export PATH=/opt/rocm/bin:$PATH
+   spack load hip
+   spack load rocfft
    which hipcc
 else
    # Use the stock backend with AVX instruction set
@@ -58,9 +60,6 @@ if [ "$STAGE" = "build" ]; then
    ls -lR install/lib*/libheffte.so
 elif [ "$BACKEND" = "ONEAPI" ]; then
     echo "Skipping tests due to lack of hardware support."
-    exit
-elif [ "$BACKEND" = "ROCM" ]; then
-    echo "ROCM backend tests require HIP-aware MPI.  Skipping tests."
     exit
 elif [ "$STAGE" = "test" ]; then
    ctest -V
